@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<title>Horarios Rocha ⇄ La Paloma</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+/* ================= RESET ================= */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+-webkit-tap-highlight-color:transparent;
+}
+
+body{
+background:#0b1220;
+color:white;
+overflow-x:hidden;
+}
+
+/* ================= FONDO ================= */
+
+body::before{
+content:"";
+position:fixed;
+width:200%;
+height:200%;
+background:linear-gradient(120deg,#0ea5e9,#1e3a8a,#0ea5e9);
+animation:bgMove 18s linear infinite;
+opacity:.15;
+z-index:-2;
+}
+
+@keyframes bgMove{
+0%{transform:translate(-20%,-20%) rotate(0deg);}
+100%{transform:translate(-20%,-20%) rotate(360deg);}
+}
+
+/* LINEAS */
+
+.lines{
+position:fixed;
+width:100%;
+height:100%;
+overflow:hidden;
+z-index:-1;
+}
+
+.lines span{
+position:absolute;
+width:2px;
+height:200px;
+background:linear-gradient(transparent,#38bdf8,transparent);
+animation:fall 6s linear infinite;
+opacity:.4;
+}
+
+@keyframes fall{
+0%{transform:translateY(-200px);}
+100%{transform:translateY(120vh);}
+}
+
+/* BUS */
+
+.bus{
+position:fixed;
+bottom:30px;
+left:-250px;
+font-size:42px;
+animation:drive 18s linear infinite;
+z-index:1;
+}
+
+@keyframes drive{
+0%{left:-250px;}
+100%{left:110%;}
+}
+
+/* ================= CONTENIDO ================= */
+
+.container{
+max-width:700px;
+margin:auto;
+padding:25px 15px;
+text-align:center;
+}
+
+h1{
+font-size:26px;
+margin-bottom:8px;
+}
+
+.subtitle{
+opacity:.7;
+margin-bottom:20px;
+font-size:14px;
+}
+
+/* SELECTORES APP */
+
+.controls{
+display:flex;
+flex-direction:column;
+gap:12px;
+margin-bottom:20px;
+}
+
+select{
+padding:14px;
+border-radius:14px;
+border:none;
+background:#1e293b;
+color:white;
+font-size:15px;
+}
+
+/* TARJETA */
+
+.card{
+background:rgba(255,255,255,0.06);
+backdrop-filter:blur(15px);
+border-radius:18px;
+padding:20px;
+box-shadow:0 10px 25px rgba(0,0,0,.4);
+animation:fadeUp .7s ease;
+}
+
+@keyframes fadeUp{
+from{opacity:0;transform:translateY(30px);}
+to{opacity:1;transform:translateY(0);}
+}
+
+.card h2{
+margin-bottom:15px;
+color:#38bdf8;
+font-size:18px;
+}
+
+/* HORARIOS */
+
+.time{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid rgba(255,255,255,.08);
+font-size:15px;
+}
+
+/* FOOTER */
+
+footer{
+margin-top:25px;
+opacity:.6;
+font-size:13px;
+}
+
+/* MOBILE EXTRA */
+
+@media(max-width:480px){
+
+h1{font-size:22px;}
+
+.time{
+font-size:14px;
+padding:12px 0;
+}
+
+select{
+font-size:16px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="lines" id="lines"></div>
+<div class="bus">🚌</div>
+
+<div class="container">
+
+<h1>Horarios Rocha ⇄ La Paloma</h1>
+<p class="subtitle">Consulta rápida desde tu celular</p>
+
+<div class="controls">
+
+<select id="direccion" onchange="actualizarVista()">
+<option value="rocha">Rocha → La Paloma</option>
+<option value="paloma">La Paloma → Rocha</option>
+</select>
+
+<select id="dia" onchange="actualizarVista()">
+<option value="semana">Día de Semana</option>
+<option value="finde">Fin de Semana</option>
+</select>
+
+</div>
+
+<div class="card">
+<h2 id="tituloDireccion"></h2>
+<div id="lista"></div>
+</div>
+
+<footer>
+Hecho para la comunidad de Rocha 🚍
+</footer>
+
+</div>
+
+<script>
+
+/* ===== LINEAS ===== */
+
+const lines=document.getElementById("lines");
+for(let i=0;i<35;i++){
+let span=document.createElement("span");
+span.style.left=Math.random()*100+"%";
+span.style.animationDuration=(4+Math.random()*6)+"s";
+span.style.animationDelay=Math.random()*5+"s";
+lines.appendChild(span);
+}
+
+/* ===== HORARIOS ===== */
+
+/* ===== HORARIOS ===== */
+
+/* ROCHA → LA PALOMA */
+const semanaRocha=[
+["5:15","COTEC"],["6:00","Rutas del Sol"],["6:15","Rochatour"],
+["7:00","COTEC"],["8:00","CYNSA"],["8:00","Rochatour"],
+["8:30","Climezul"],["9:00","COT"],["10:00","COTEC"],
+["10:15","Rutas del Sol"],["10:30","CYNSA"],
+["11:00","Rochatour"],["11:15","CYNSA"],
+["13:00","COTEC"],["13:20","Tur Este"],["13:30","Rutas del Sol"],
+["14:00","COTEC"],["14:30","Rochatour"],
+["15:00","COTEC"],["15:20","CYNSA"],["15:50","CYNSA"],
+["16:00","COTEC"],["16:20","COT"],["16:30","Rochatour"],
+["17:45","COTEC"],["17:50","Rutas del Sol"],["17:50","Tur Este"],
+["19:00","Gonzatour"],["19:30","CYNSA"],
+["20:00","COTEC"],["21:00","Gonzatour"],
+["21:05","COT"],["22:20","Tur Este"],
+["22:30","CYNSA"],["23:00","CYNSA"]
+];
+
+/* LA PALOMA → ROCHA */
+/* ⚠️ POR AHORA DUPLICO COMO BASE
+   después pegás acá los reales */
+/* LA PALOMA → ROCHA (HORARIOS REALES) */
+const semanaPaloma=[
+
+["05:05","CYNSA"],
+["06:20","COTEC"],
+["06:20","COTEC"],
+["06:40","Rutas del Sol"],
+["07:00","RochaTour"],
+["07:55","COTEC"],
+["08:00","COT"],
+["09:05","CYNSA"],
+["09:30","RochaTour"],
+["10:30","Climezul"],
+["11:15","Tur Este"],
+["12:15","COTEC"],
+["12:45","COT"],
+["13:15","RochaTour"],
+["14:00","COTEC"],
+["14:15","CYNSA"],
+["14:30","COTEC"],
+["15:30","COTEC"],
+["16:00","RochaTour"],
+["16:15","Tur Este"],
+["16:20","Rutas del Sol"],
+["17:00","COTEC"],
+["17:30","CYNSA"],
+["18:20","COTEC"],
+["18:30","COT"],
+["18:50","Rutas del Sol"],
+["19:00","RochaTour"],
+["19:30","CYNSA"],
+["19:30","CYNSA"],
+["20:00","Gonza-tour"],
+["20:35","Tur Este"],
+["21:10","COTEC"],
+["21:30","CYNSA"],
+["22:15","Gonza-tour"]
+
+];
+
+/* FINDE (placeholder hasta que tengas reales) */
+const findeRocha=[...semanaRocha];
+const findePaloma=[...semanaPaloma];
+
+/* ===== RENDER ===== */
+
+function render(lista){
+const cont=document.getElementById("lista");
+cont.innerHTML="";
+
+lista.forEach(h=>{
+cont.innerHTML+=`
+<div class="time">
+<span>${h[0]} hs</span>
+<span>${h[1]}</span>
+</div>`;
+});
+}
+
+/* ===== CONTROL APP ===== */
+
+function actualizarVista(){
+
+const direccion=document.getElementById("direccion").value;
+const dia=document.getElementById("dia").value;
+const titulo=document.getElementById("tituloDireccion");
+
+let data;
+
+if(direccion==="rocha"){
+titulo.innerText="Rocha → La Paloma";
+data=(dia==="semana")?semanaRocha:findeRocha;
+}else{
+titulo.innerText="La Paloma → Rocha";
+data=(dia==="semana")?semanaPaloma:findePaloma;
+}
+
+render(data);
+}
+
+actualizarVista();
+
+</script>
+
+</body>
+</html>
