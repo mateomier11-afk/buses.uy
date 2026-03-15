@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IMPOSTOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a28;
+    --accent: #ff3c5f;
+    --accent2: #7b2fff;
+    --accent3: #00f0c8;
+    --text: #f0eeff;
+    --muted: #6b6b8a;
+    --border: rgba(255,255,255,0.07);
+    --glow: 0 0 40px rgba(255,60,95,0.3);
+    --glow2: 0 0 40px rgba(123,47,255,0.3);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated background */
+  .bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.18;
+    animation: orbFloat 10s ease-in-out infinite;
+  }
+  .bg-orb:nth-child(1) { width:500px;height:500px;background:var(--accent2);top:-100px;left:-100px;animation-delay:0s; }
+  .bg-orb:nth-child(2) { width:400px;height:400px;background:var(--accent);bottom:-100px;right:-100px;animation-delay:-4s; }
+  .bg-orb:nth-child(3) { width:300px;height:300px;background:var(--accent3);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:-7s; }
+
+  @keyframes orbFloat {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33% { transform: translate(30px,-20px) scale(1.05); }
+    66% { transform: translate(-20px,30px) scale(0.95); }
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:1;
+    opacity:0.5;
+  }
+
+  .app {
+    position: relative;
+    z-index: 2;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+    min-height: 100vh;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display:none; animation: screenIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+  .screen.active { display:block; }
+
+  @keyframes screenIn {
+    from { opacity:0; transform: translateY(20px) scale(0.98); }
+    to { opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  /* ===== HEADER ===== */
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,60,95,0.15);
+    border: 1px solid rgba(255,60,95,0.4);
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding: 6px 16px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 20vw, 110px);
+    line-height: 0.9;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 0%, #ff3c5f 50%, #7b2fff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+  }
+  .hero h1 span {
+    display: block;
+    font-size: 0.45em;
+    letter-spacing: 0.3em;
+    -webkit-text-fill-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .hero-sub {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 18px 24px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+    position: relative;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,0.1);
+    opacity:0;
+    transition:opacity 0.2s;
+  }
+  .btn:active::after { opacity:1; }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #c4003d);
+    color: white;
+    box-shadow: 0 8px 32px rgba(255,60,95,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .btn-secondary {
+    background: linear-gradient(135deg, var(--accent2), #5200c4);
+    color: white;
+    box-shadow: 0 8px 32px rgba(123,47,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-teal {
+    background: linear-gradient(135deg, var(--accent3), #00b894);
+    color: #0a0a0f;
+    box-shadow: 0 8px 32px rgba(0,240,200,0.3);
+  }
+  .btn-sm {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 10px;
+    width: auto;
+  }
+
+  /* ===== PLAYER COUNT ===== */
+  .player-counter {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .counter-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-family: 'Space Mono', monospace;
+  }
+  .counter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .counter-btn:active { transform: scale(0.9); }
+  .counter-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    color: var(--accent);
+    min-width: 80px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  /* ===== PLAYER NAMES ===== */
+  .player-list { display: flex; flex-direction: column; gap: 10px; }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .player-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .player-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .player-input:focus { border-color: var(--accent2); }
+  .player-input::placeholder { color: var(--muted); }
+
+  /* ===== CATEGORY GRID ===== */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .cat-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  .cat-btn:active { transform: scale(0.95); }
+  .cat-btn.selected {
+    border-color: var(--accent);
+    background: rgba(255,60,95,0.12);
+    box-shadow: 0 0 20px rgba(255,60,95,0.2);
+    color: var(--accent);
+  }
+  .cat-btn.selected .cat-icon { transform: scale(1.15); }
+  .cat-icon { font-size: 26px; transition: transform 0.2s; }
+
+  /* ===== ROLE REVEAL ===== */
+  .reveal-screen { text-align: center; }
+  .reveal-queue {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .reveal-player-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.25s;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    width: 100%;
+  }
+  .reveal-player-btn.revealed {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .reveal-player-btn .tap-hint {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .reveal-player-btn:active { transform: scale(0.98); }
+
+  /* Role Card Flip */
+  .role-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .role-card {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 28px;
+    padding: 48px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    animation: cardPop 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes cardPop {
+    from { opacity:0; transform: scale(0.7) rotate(-3deg); }
+    to { opacity:1; transform: scale(1) rotate(0deg); }
+  }
+  .role-card.impostor {
+    background: linear-gradient(145deg, #2a0012, #1a000a);
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 80px rgba(255,60,95,0.5), inset 0 0 40px rgba(255,60,95,0.1);
+  }
+  .role-card.normal {
+    background: linear-gradient(145deg, #0a1a2a, #050e1a);
+    border: 2px solid var(--accent3);
+    box-shadow: 0 0 80px rgba(0,240,200,0.3), inset 0 0 40px rgba(0,240,200,0.05);
+  }
+  .role-emoji { font-size: 60px; margin-bottom: 16px; display: block; animation: emojiPulse 2s ease-in-out infinite; }
+  @keyframes emojiPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .role-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .role-card.impostor .role-label { color: var(--accent); }
+  .role-card.normal .role-label { color: var(--accent3); }
+  .role-player { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; margin-bottom: 16px; }
+  .role-word {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .role-card.impostor .role-word { color: var(--accent); text-shadow: 0 0 30px rgba(255,60,95,0.5); }
+  .role-card.normal .role-word { color: var(--accent3); text-shadow: 0 0 30px rgba(0,240,200,0.5); }
+  .role-desc { color: var(--muted); font-size: 12px; margin-bottom: 28px; line-height: 1.7; }
+  .role-close-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 14px 32px;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .role-close-btn:active { transform: scale(0.97); background: rgba(255,255,255,0.18); }
+  .impostor-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 4px 12px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  /* ===== GAME SCREEN ===== */
+  .timer-ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    position: relative;
+  }
+  .timer-ring-wrap svg { transform: rotate(-90deg); }
+  .timer-circle-bg { fill:none; stroke: rgba(255,255,255,0.05); stroke-width: 8; }
+  .timer-circle { fill:none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 1s; }
+  .timer-center {
+    position: absolute;
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+  }
+  .timer-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+  .timer-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .timer-ring-wrap.warning .timer-num { color: var(--accent); animation: timerPulse 1s ease infinite; }
+  @keyframes timerPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .round-info {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .info-chip {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .info-chip .label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .info-chip .value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; }
+
+  .game-btns { display: flex; gap: 10px; }
+  .game-btns .btn { flex: 1; }
+
+  /* ===== RESULTS ===== */
+  .result-header {
+    text-align: center;
+    padding: 40px 0 24px;
+  }
+  .result-icon {
+    font-size: 80px;
+    display: block;
+    margin-bottom: 16px;
+    animation: resultBounce 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes resultBounce {
+    from { transform: scale(0) rotate(-20deg); opacity:0; }
+    to { transform: scale(1) rotate(0); opacity:1; }
+  }
+  .result-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-word-reveal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-word-reveal::before {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: linear-gradient(135deg, rgba(255,60,95,0.05), rgba(123,47,255,0.05));
+  }
+  .result-word-label { font-size: 11px; color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+  .result-word { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: var(--accent3); line-height: 1; }
+  .result-category { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .impostor-reveal {
+    background: linear-gradient(135deg, rgba(255,60,95,0.1), rgba(123,47,255,0.1));
+    border: 1px solid rgba(255,60,95,0.3);
+    border-radius: 20px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 16px;
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+  @keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(255,60,95,0.2)} 50%{box-shadow:0 0 40px rgba(255,60,95,0.4)} }
+  .impostor-reveal-label { font-size: 11px; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+  .impostor-reveal-name { font-family: 'Bebas Neue', sans-serif; font-size: 44px; color: white; line-height: 1; }
+
+  /* ===== ALARM ===== */
+  .alarm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    background: rgba(10,0,5,0.95);
+    animation: alarmFlash 0.5s ease infinite alternate;
+  }
+  @keyframes alarmFlash { from{background:rgba(10,0,5,0.95)} to{background:rgba(80,0,20,0.95)} }
+  .alarm-icon { font-size: 80px; animation: alarmSpin 0.5s linear infinite; }
+  @keyframes alarmSpin { from{transform:rotate(-10deg)} to{transform:rotate(10deg)} }
+  .alarm-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    color: var(--accent);
+    text-align: center;
+    text-shadow: 0 0 40px rgba(255,60,95,0.8);
+    letter-spacing: 4px;
+  }
+
+  /* ===== MISC ===== */
+  .separator {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 20px 0;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--text); }
+  .back-btn:active { color: var(--accent); }
+
+  .floating-particles {
+    position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    animation: particleFly linear infinite;
+  }
+  @keyframes particleFly {
+    0% { opacity:0; transform: translateY(100vh) scale(0); }
+    10% { opacity:0.6; }
+    90% { opacity:0.3; }
+    100% { opacity:0; transform: translateY(-20px) scale(1); }
+  }
+
+  /* Glitch on title */
+  .glitch {
+    position: relative;
+  }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: inherit;
+    letter-spacing: inherit;
+    background: inherit;
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .glitch::before {
+    -webkit-text-fill-color: rgba(255,60,95,0.5);
+    color: rgba(255,60,95,0.5);
+    animation: glitch1 4s infinite;
+  }
+  .glitch::after {
+    -webkit-text-fill-color: rgba(0,240,200,0.3);
+    color: rgba(0,240,200,0.3);
+    animation: glitch2 4s infinite;
+  }
+  @keyframes glitch1 {
+    0%,90%,100% { transform: translate(0); clip-path: none; }
+    92% { transform: translate(-3px,1px); clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%); }
+    94% { transform: translate(3px,-1px); clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%); }
+  }
+  @keyframes glitch2 {
+    0%,88%,100% { transform: translate(0); clip-path: none; }
+    90% { transform: translate(3px,-1px); clip-path: polygon(0 40%, 100% 40%, 100% 55%, 0 55%); }
+    93% { transform: translate(-2px,2px); clip-path: polygon(0 70%, 100% 70%, 100% 85%, 0 85%); }
+  }
+
+  .all-revealed-msg {
+    text-align: center;
+    padding: 20px;
+    color: var(--accent3);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .pulse-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    margin-right: 8px;
+    animation: pulseDot 1.5s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:0.5} }
+</style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+  <div class="bg-orb"></div>
+</div>
+<div class="floating-particles" id="particles"></div>
+
+<div class="app">
+
+  <!-- ===== HOME ===== -->
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-badge">🎮 Juego de palabras</div>
+      <h1 class="glitch" data-text="IMPOSTOR">IMPOSTOR<span>EL JUEGO</span></h1>
+      <p class="hero-sub">Descubrí quién es el impostor<br>antes de que sea demasiado tarde</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👥 Cantidad de jugadores</div>
+      <div class="player-counter">
+        <button class="counter-btn" id="btn-minus">−</button>
+        <div class="counter-num" id="player-count-display">4</div>
+        <button class="counter-btn" id="btn-plus">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✏️ Nombres de jugadores</div>
+      <div class="player-list" id="player-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🗂️ Categoría</div>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+
+    <div style="height:16px"></div>
+    <button class="btn btn-primary" id="btn-start" style="font-size:18px;padding:22px;">
+      🚀 INICIAR RONDA
+    </button>
+    <div style="height:8px"></div>
+    <button class="btn btn-ghost" id="btn-how">
+      ❓ ¿Cómo se juega?
+    </button>
+  </div>
+
+  <!-- ===== REVEAL ===== -->
+  <div class="screen" id="screen-reveal">
+    <button class="back-btn" id="back-reveal">← Volver</button>
+    <div class="section-title">📬 Repartir roles</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.7">
+      Que cada jugador toque su nombre y vea su palabra <strong>sin</strong> que los demás vean.
+    </p>
+    <div class="reveal-queue" id="reveal-queue"></div>
+    <div id="all-revealed-container" style="display:none">
+      <div class="all-revealed-msg">
+        <span class="pulse-dot"></span>¡Todos tienen su palabra!
+      </div>
+      <div style="height:12px"></div>
+      <button class="btn btn-primary" id="btn-go-game" style="font-size:17px;padding:20px;">
+        ⏱️ EMPEZAR TEMPORIZADOR
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div class="screen" id="screen-game">
+    <div class="timer-ring-wrap" id="timer-wrap">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <circle class="timer-circle-bg" cx="100" cy="100" r="88"/>
+        <circle class="timer-circle" id="timer-circle" cx="100" cy="100" r="88"
+          stroke="url(#grad)" stroke-dasharray="553" stroke-dashoffset="0"/>
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ff3c5f"/>
+            <stop offset="100%" stop-color="#7b2fff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="timer-center">
+        <div class="timer-num" id="timer-display">5:00</div>
+        <div class="timer-label">minutos</div>
+      </div>
+    </div>
+
+    <div class="round-info">
+      <div class="info-chip">
+        <div class="label">Categoría</div>
+        <div class="value" id="game-category">—</div>
+      </div>
+      <div class="info-chip">
+        <div class="label">Jugadores</div>
+        <div class="value" id="game-players">—</div>
+      </div>
+      <div class="info-chip">
+        <div class="label">Impostor</div>
+        <div class="value" style="color:var(--accent)">???</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📋 Reglas de la ronda</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.8">
+        Cada jugador dice <strong style="color:var(--text)">una palabra</strong> relacionada a su palabra.<br>
+        El impostor no sabe la palabra real y debe <strong style="color:var(--accent)">fingir</strong>.<br>
+        Al terminar el tiempo, todos <strong style="color:var(--accent3)">votan</strong> quién es el impostor.
+      </p>
+    </div>
+
+    <div class="game-btns">
+      <button class="btn btn-ghost" id="btn-pause" style="flex:0.6">⏸ Pausar</button>
+      <button class="btn btn-primary" id="btn-end-game">🏁 Finalizar partida</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div class="screen" id="screen-result">
+    <div class="result-header">
+      <span class="result-icon" id="result-icon">🕵️</span>
+      <div class="result-title">¡FIN DE RONDA!</div>
+    </div>
+
+    <div class="result-word-reveal">
+      <div class="result-word-label">La palabra secreta era</div>
+      <div class="result-word" id="result-word">—</div>
+      <div class="result-category" id="result-category">—</div>
+    </div>
+
+    <div class="impostor-reveal">
+      <div class="impostor-reveal-label">🎭 El impostor era...</div>
+      <div class="impostor-reveal-name" id="result-impostor">—</div>
+    </div>
+
+    <div style="height:8px"></div>
+    <button class="btn btn-teal" id="btn-new-round">🔄 Nueva ronda</button>
+    <div style="height:8px"></div>
+    <button class="btn btn-ghost" id="btn-home">🏠 Menú principal</button>
+    <div style="height:24px"></div>
+  </div>
+
+</div>
+
+<!-- Role Overlay -->
+<div class="role-overlay" id="role-overlay" style="display:none"></div>
+<!-- Alarm Overlay -->
+<div class="alarm-overlay" id="alarm-overlay" style="display:none">
+  <div class="alarm-icon">⏰</div>
+  <div class="alarm-text">¡TIEMPO!</div>
+  <div class="alarm-text" style="font-size:28px;color:var(--text)">Hora de votar</div>
+  <button class="btn btn-primary" style="max-width:280px;margin-top:20px" id="btn-alarm-ok">Ver resultado →</button>
+</div>
+
+<script>
+// ========== DATA ==========
+const CATEGORIES = {
+  '🍕 Comida': ['Pizza','Sushi','Hamburguesa','Tacos','Pasta','Asado','Empanada','Milanesa','Helado','Chocolate','Medialunas','Facturas','Pizza napolitana','Churrasco','Lomito','Sandía','Naranja','Mango','Frutilla','Durazno','Dulce de leche','Alfajor','Mate','Café','Cerveza','Vino','Jugo de naranja','Ensalada','Pollo al horno','Patatas fritas','Puré de papas','Locro','Guiso','Milanesa napolitana','Wok','Ramen','Sopa','Risotto','Ceviche','Paella','Kebab','Hot dog','Nachos','Burrito','Wrap','Pancakes','Waffles','Brownie','Tiramisú','Cheesecake','Flan'],
+  '🐶 Animales': ['Perro','Gato','León','Tigre','Elefante','Jirafa','Delfín','Ballena','Águila','Cocodrilo','Hipopótamo','Rinoceronte','Cebra','Gorila','Chimpancé','Oso polar','Panda','Koala','Canguro','Pingüino','Flamenco','Loro','Tucán','Serpiente','Iguana','Camaleón','Pulpo','Medusa','Tiburón','Raya','Caballo','Vaca','Cerdo','Oveja','Conejo','Hamster','Tortuga','Pez payaso','Cabra','Llama','Alpaca','Puma','Jaguar','Zorro','Lobo','Murciélago','Ardilla','Mapache','Castor','Nutria'],
+  '🚗 Autos': ['Ferrari','Lamborghini','Porsche','BMW','Mercedes','Toyota','Ford','Chevrolet','Audi','Volkswagen','Tesla','Bugatti','McLaren','Aston Martin','Rolls Royce','Bentley','Maserati','Alfa Romeo','Fiat','Renault','Peugeot','Citroën','Honda','Nissan','Mazda','Subaru','Mitsubishi','Kia','Hyundai','Jeep','Land Rover','Range Rover','Volvo','Skoda','Seat','Dodge','Chrysler','Cadillac','Corvette','Mustang','Camaro','Challenger','Bronco','Wrangler','Hummer','Lexus','Infiniti','Acura','Genesis','Lancia'],
+  '⚽ Deportes': ['Fútbol','Básquet','Tenis','Natación','Ciclismo','Boxeo','Atletismo','Vóley','Rugby','Hockey','Béisbol','Golf','Surf','Esquí','Escalada','Judo','Karate','Taekwondo','Lucha','Esgrima','Remo','Vela','Equitación','Tiro al arco','Triatlón','Pentatlón','Halterofilia','Gimnasia','Patinaje','Snowboard','Wakeboard','Kitesurf','Windsurf','Polo','Padel','Squash','Badminton','Ping pong','Billar','Bolos','Dardos','Ajedrez deportivo','CrossFit','MMA','Kickboxing','Muay Thai','BJJ','Waterpolo','Polo acuático','Softball'],
+  '🎮 Objetos': ['Teléfono','Laptop','Reloj','Silla','Mesa','Lámpara','Televisor','Nevera','Microondas','Lavadora','Aspiradora','Licuadora','Tostador','Cafetera','Cámara','Auriculares','Parlante','Control remoto','Batería','Cargador','Calculadora','Teclado','Mouse','Monitor','Tablet','Smartwatch','Impresora','Escáner','Router','Cable HDMI','Llave','Candado','Mochila','Cartera','Billetera','Paraguas','Gafas','Casco','Guantes','Bufanda','Cinturón','Zapatos','Zapatillas','Sombrero','Gorra','Anteojos de sol','Anillo','Collar','Pulsera','Aretes'],
+  '🏙️ Lugares': ['Playa','Montaña','Desierto','Selva','Ciudad','Pueblo','Aeropuerto','Estación','Hospital','Escuela','Universidad','Biblioteca','Museo','Teatro','Cine','Estadio','Plaza','Parque','Jardín','Cementerio','Iglesia','Castillo','Palacio','Torre','Puente','Túnel','Puerto','Faro','Mercado','Shopping','Restaurante','Café','Bar','Club','Hotel','Hostel','Camping','Granja','Rancho','Fábrica','Laboratorio','Oficina','Banco','Comisaría','Cuartel','Embajada','Zoológico','Acuario','Parque de diversiones','Spa'],
+  '🎬 Películas': ['Titanic','Avatar','Matrix','Star Wars','Harry Potter','El Señor de los Anillos','El Padrino','Pulp Fiction','Interstellar','Inception','Batman','Spider-Man','Iron Man','Avengers','Joker','Forrest Gump','El Rey León','Toy Story','Shrek','Coco','Moana','Frozen','Zootopia','Up','Soul','Encanto','La La Land','Parasite','Whiplash','El Gran Gatsby','Gladiador','Braveheart','El Pianista','Schindler','Goodfellas','Scarface','El Silencio de los Inocentes','Se7en','Fight Club','American Beauty','Memento','El Sexto Sentido','Moulin Rouge','Chicago','Grease','Dirty Dancing','Ghost','Pretty Woman','Notting Hill','Bohemian Rhapsody'],
+  '🎵 Música': ['Rock','Pop','Jazz','Blues','Reggaeton','Cumbia','Salsa','Merengue','Bachata','Tango','Flamenco','Hip Hop','Rap','Trap','R&B','Soul','Funk','Disco','Electrónica','House','Techno','Dubstep','Metal','Punk','Grunge','Indie','Folk','Country','Bossa Nova','Samba','Reggae','Ska','Funk carioca','K-Pop','J-Pop','Ópera','Clásica','Barroco','Bolero','Ranchera','Nortena','Corrido','Guaracha','Son cubano','Vallenato','Marinera','Huayno','Candombe','Murga','Chamamé','Cuarteto'],
+  '🌍 Países': ['Argentina','Brasil','México','España','Italia','Francia','Alemania','EEUU','Japón','China','Australia','Rusia','India','Canadá','Colombia','Chile','Uruguay','Paraguay','Bolivia','Perú','Ecuador','Venezuela','Cuba','Puerto Rico','República Dominicana','Panamá','Costa Rica','Guatemala','Honduras','El Salvador','Nicaragua','Grecia','Portugal','Holanda','Bélgica','Suiza','Austria','Polonia','Turquía','Egipto','Marruecos','Nigeria','Sudáfrica','Corea del Sur','Vietnam','Tailandia','Indonesia','Filipinas','Nueva Zelanda','Suecia'],
+  '🦸 Superhéroes': ['Superman','Batman','Spider-Man','Iron Man','Capitán América','Thor','Hulk','Black Widow','Hawkeye','Doctor Strange','Black Panther','Ant-Man','Wasp','Visión','Scarlet Witch','Capitana Marvel','Shazam','The Flash','Wonder Woman','Aquaman','Green Lantern','Robin','Nightwing','Batgirl','Supergirl','Stargirl','Atom','Cyborg','Martian Manhunter','Green Arrow','Black Canary','Zatanna','Constantine','Wolverine','Cyclops','Jean Grey','Storm','Rogue','Gambit','Magneto','Professor X','Deadpool','Cable','Domino','Colossus','Mystique','Sabretooth','Punisher','Daredevil','Luke Cage'],
+  '💻 Tecnología': ['Inteligencia Artificial','Blockchain','Metaverso','Realidad Virtual','Realidad Aumentada','Nube','Big Data','Machine Learning','Ciberseguridad','Criptomonedas','Bitcoin','NFT','Robot','Drone','Impresora 3D','Nanotecnología','Biotecnología','Internet de las cosas','5G','WiFi','Bluetooth','GPS','QR Code','App','Software','Hardware','Servidor','Base de datos','Algoritmo','Código fuente','Open Source','API','Framework','Startup','Unicornio','Hackathon','Dark Web','Firewall','Antivirus','VPN','Hosting','Dominio','SEO','Cookie','Cache','Pixel','Streaming','Podcast','Influencer','Youtuber'],
+  '🎭 Profesiones': ['Doctor','Abogado','Arquitecto','Ingeniero','Profesor','Chef','Piloto','Astronauta','Bombero','Policía','Enfermero','Dentista','Veterinario','Psicólogo','Contador','Economista','Periodista','Actor','Músico','Escritor','Pintor','Escultor','Diseñador','Fotógrafo','Programador','Científico','Investigador','Detective','Juez','Político','Alcalde','Presidente','Diplomático','Embajador','Filósofo','Sociólogo','Antropólogo','Biólogo','Físico','Químico','Matemático','Historiador','Arqueólogo','Geógrafo','Meteorólogo','Oceanógrafo','Botánico','Zoólogo','Genetista','Neurólogo']
+};
+
+// ========== STATE ==========
+let state = {
+  playerCount: 4,
+  players: ['Jugador 1','Jugador 2','Jugador 3','Jugador 4'],
+  selectedCategory: null,
+  impostorIndex: -1,
+  word: '',
+  category: '',
+  revealedCount: 0,
+  timerSeconds: 300,
+  timerInterval: null,
+  timerRunning: false,
+  alarmAudio: null,
+};
+
+// ========== PARTICLES ==========
+function initParticles() {
+  const wrap = document.getElementById('particles');
+  const colors = ['#ff3c5f','#7b2fff','#00f0c8','#fff'];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 4 + 2;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*-20}s;
+    `;
+    wrap.appendChild(p);
+  }
+}
+initParticles();
+
+// ========== SCREENS ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-'+id);
+  el.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ========== CATEGORY GRID ==========
+function buildCatGrid() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = '';
+  Object.keys(CATEGORIES).forEach(cat => {
+    const [icon, ...nameParts] = cat.split(' ');
+    const name = nameParts.join(' ');
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (state.selectedCategory === cat ? ' selected' : '');
+    btn.innerHTML = `<span class="cat-icon">${icon}</span><span>${name}</span>`;
+    btn.onclick = () => {
+      state.selectedCategory = cat;
+      buildCatGrid();
+    };
+    grid.appendChild(btn);
+  });
+}
+buildCatGrid();
+
+// ========== PLAYER LIST ==========
+function buildPlayerList() {
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+  for (let i = 0; i < state.playerCount; i++) {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <div class="player-num">${i+1}</div>
+      <input class="player-input" type="text" placeholder="Jugador ${i+1}" value="${state.players[i]||''}" data-idx="${i}" maxlength="20">
+    `;
+    list.appendChild(row);
+    row.querySelector('input').addEventListener('input', e => {
+      state.players[e.target.dataset.idx] = e.target.value || `Jugador ${parseInt(e.target.dataset.idx)+1}`;
+    });
+  }
+}
+buildPlayerList();
+
+// ========== PLAYER COUNT ==========
+document.getElementById('btn-minus').onclick = () => {
+  if (state.playerCount <= 3) return;
+  state.playerCount--;
+  if (state.players.length > state.playerCount) state.players = state.players.slice(0,state.playerCount);
+  document.getElementById('player-count-display').textContent = state.playerCount;
+  buildPlayerList();
+};
+document.getElementById('btn-plus').onclick = () => {
+  if (state.playerCount >= 12) return;
+  state.playerCount++;
+  if (!state.players[state.playerCount-1]) state.players[state.playerCount-1] = `Jugador ${state.playerCount}`;
+  document.getElementById('player-count-display').textContent = state.playerCount;
+  buildPlayerList();
+};
+
+// ========== HOW TO PLAY ==========
+document.getElementById('btn-how').onclick = () => {
+  const o = document.createElement('div');
+  o.className = 'role-overlay';
+  o.innerHTML = `
+    <div class="role-card normal" style="max-width:340px">
+      <span class="role-emoji">🎮</span>
+      <div class="role-player" style="font-size:22px;margin-bottom:16px">¿Cómo se juega?</div>
+      <div style="text-align:left;font-size:13px;color:var(--muted);line-height:2;margin-bottom:20px">
+        <div>🔹 Se reparten roles secretos</div>
+        <div>🔹 Todos tienen una <strong style="color:var(--accent3)">palabra</strong> menos el impostor</div>
+        <div>🔹 Cada uno dice <strong style="color:var(--text)">una pista</strong> relacionada a su palabra</div>
+        <div>🔹 El impostor <strong style="color:var(--accent)">finge</strong> saber la palabra</div>
+        <div>🔹 Al terminar, <strong style="color:var(--text)">votan</strong> quién es el impostor</div>
+        <div>🔹 Si adivinas al impostor, <strong style="color:var(--accent3)">¡los jugadores ganan!</strong></div>
+      </div>
+      <button class="role-close-btn" onclick="this.closest('.role-overlay').remove()">¡Entendido! 👊</button>
+    </div>
+  `;
+  document.body.appendChild(o);
+  o.onclick = e => { if(e.target===o) o.remove(); };
+};
+
+// ========== START GAME ==========
+document.getElementById('btn-start').onclick = () => {
+  if (!state.selectedCategory) {
+    showToast('Seleccioná una categoría');
+    return;
+  }
+  const names = [];
+  document.querySelectorAll('.player-input').forEach((inp,i) => {
+    names[i] = inp.value.trim() || `Jugador ${i+1}`;
+  });
+  state.players = names;
+
+  // Pick random word & impostor
+  const words = CATEGORIES[state.selectedCategory];
+  state.word = words[Math.floor(Math.random()*words.length)];
+  state.category = state.selectedCategory;
+  state.impostorIndex = Math.floor(Math.random()*state.playerCount);
+  state.revealedCount = 0;
+
+  buildRevealQueue();
+  showScreen('reveal');
+};
+
+// ========== REVEAL QUEUE ==========
+function buildRevealQueue() {
+  const queue = document.getElementById('reveal-queue');
+  const allRev = document.getElementById('all-revealed-container');
+  queue.innerHTML = '';
+  allRev.style.display = 'none';
+
+  const revealed = new Array(state.playerCount).fill(false);
+
+  for (let i = 0; i < state.playerCount; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'reveal-player-btn';
+    btn.id = `reveal-btn-${i}`;
+    btn.innerHTML = `
+      <div>
+        <div style="font-size:16px">${state.players[i]}</div>
+      </div>
+      <div class="tap-hint">👆 Toca para ver tu palabra</div>
+    `;
+    btn.onclick = () => showRoleCard(i, btn, revealed, allRev);
+    queue.appendChild(btn);
+  }
+}
+
+function showRoleCard(i, btn, revealed, allRevContainer) {
+  const isImpostor = i === state.impostorIndex;
+  const overlay = document.getElementById('role-overlay');
+  overlay.style.display = 'flex';
+
+  overlay.innerHTML = `
+    <div class="role-card ${isImpostor ? 'impostor' : 'normal'}">
+      ${isImpostor ? '<div class="impostor-tag">⚠️ ERES EL IMPOSTOR</div>' : '<span class="role-emoji">🔍</span>'}
+      <div class="role-label">${isImpostor ? '🎭 Tu rol' : '✅ Tu palabra secreta'}</div>
+      <div class="role-player">${state.players[i]}</div>
+      <div class="role-word">${isImpostor ? '???' : state.word}</div>
+      <div class="role-desc">
+        ${isImpostor
+          ? 'No conocés la palabra. Observá las pistas de los demás y fingí que sí la sabés. ¡No te descubran!'
+          : `Categoría: ${state.category.split(' ').slice(1).join(' ')}\nDa pistas relacionadas sin decir la palabra directamente.`}
+      </div>
+      <button class="role-close-btn" id="role-close-inner">Entendido, cerrar 🙈</button>
+    </div>
+  `;
+
+  document.getElementById('role-close-inner').onclick = () => {
+    overlay.style.display = 'none';
+    overlay.innerHTML = '';
+    btn.classList.add('revealed');
+    btn.innerHTML = `<div>${state.players[i]}</div><div style="color:var(--accent3);font-size:13px">✅ Listo</div>`;
+    revealed[i] = true;
+    const allDone = revealed.every(Boolean);
+    if (allDone) allRevContainer.style.display = 'block';
+  };
+
+  overlay.onclick = e => {
+    if (e.target === overlay) { overlay.style.display = 'none'; overlay.innerHTML = ''; }
+  };
+}
+
+// ========== START TIMER ==========
+document.getElementById('btn-go-game').onclick = startGameScreen;
+
+function startGameScreen() {
+  const catShort = state.category.split(' ').slice(1).join(' ');
+  document.getElementById('game-category').textContent = catShort;
+  document.getElementById('game-players').textContent = state.playerCount + ' jugadores';
+  state.timerSeconds = 300;
+  state.timerRunning = false;
+  clearInterval(state.timerInterval);
+  updateTimerDisplay();
+  showScreen('game');
+  setTimeout(() => startTimer(), 600);
+}
+
+function startTimer() {
+  state.timerRunning = true;
+  state.timerInterval = setInterval(() => {
+    state.timerSeconds--;
+    updateTimerDisplay();
+    if (state.timerSeconds <= 0) {
+      clearInterval(state.timerInterval);
+      triggerAlarm();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timerSeconds / 60);
+  const s = state.timerSeconds % 60;
+  document.getElementById('timer-display').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+
+  const total = 300;
+  const r = 88;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - state.timerSeconds / total);
+  document.getElementById('timer-circle').style.strokeDashoffset = offset;
+
+  const wrap = document.getElementById('timer-wrap');
+  if (state.timerSeconds <= 60) {
+    wrap.classList.add('warning');
+    document.getElementById('timer-circle').style.stroke = '#ff3c5f';
+  } else if (state.timerSeconds <= 120) {
+    document.getElementById('timer-circle').style.stroke = '#ff9500';
+  }
+}
+
+// Pause
+let paused = false;
+document.getElementById('btn-pause').onclick = () => {
+  paused = !paused;
+  if (paused) {
+    clearInterval(state.timerInterval);
+    document.getElementById('btn-pause').textContent = '▶ Reanudar';
+  } else {
+    startTimer();
+    document.getElementById('btn-pause').textContent = '⏸ Pausar';
+  }
+};
+
+// ========== ALARM ==========
+function triggerAlarm() {
+  // Create alarm sound with AudioContext
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(freq, start, dur) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur + 0.01);
+    }
+    for (let i = 0; i < 6; i++) {
+      beep(880, i*0.4, 0.3);
+      beep(660, i*0.4+0.2, 0.15);
+    }
+  } catch(e) {}
+
+  document.getElementById('alarm-overlay').style.display = 'flex';
+}
+
+document.getElementById('btn-alarm-ok').onclick = () => {
+  document.getElementById('alarm-overlay').style.display = 'none';
+  showResults();
+};
+
+// ========== END GAME ==========
+document.getElementById('btn-end-game').onclick = () => {
+  clearInterval(state.timerInterval);
+  showResults();
+};
+
+function showResults() {
+  document.getElementById('result-word').textContent = state.word;
+  document.getElementById('result-category').textContent = '📂 ' + state.category.split(' ').slice(1).join(' ');
+  document.getElementById('result-impostor').textContent = state.players[state.impostorIndex];
+  showScreen('result');
+
+  // Confetti-like effect
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#ff3c5f','#7b2fff','#00f0c8','#fff','#ffd700'];
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.style.cssText = `
+        position:fixed;
+        top:0;
+        left:${Math.random()*100}%;
+        width:${Math.random()*10+5}px;
+        height:${Math.random()*10+5}px;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        border-radius:${Math.random()>0.5?'50%':'3px'};
+        z-index:500;
+        pointer-events:none;
+        animation:particleFly ${Math.random()*2+1.5}s linear forwards;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }, i * 50);
+  }
+}
+
+// ========== NEW ROUND & HOME ==========
+document.getElementById('btn-new-round').onclick = () => {
+  showScreen('home');
+};
+document.getElementById('btn-home').onclick = () => {
+  showScreen('home');
+};
+document.getElementById('back-reveal').onclick = () => {
+  showScreen('home');
+};
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = `
+    position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+    background:var(--card);border:1px solid var(--accent);
+    color:var(--accent);padding:12px 24px;border-radius:12px;
+    font-family:'Syne',sans-serif;font-weight:700;font-size:14px;
+    z-index:9999;animation:screenIn 0.3s ease;white-space:nowrap;
+    box-shadow:0 8px 32px rgba(255,60,95,0.3);
+  `;
+  t.textContent = '⚠️ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ========== BACK REVEAL ==========
+// Allow overlay click outside to dismiss
+document.getElementById('role-overlay').onclick = function(e) {
+  if (e.target === this) { this.style.display = 'none'; this.innerHTML = ''; }
+};
+</script>
+</body>
+</html>
